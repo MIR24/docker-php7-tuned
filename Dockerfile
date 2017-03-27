@@ -1,29 +1,30 @@
-FROM ubuntu:16.04
+FROM php:7.1.3-apache
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update
 
-RUN apt-get upgrade -y
+RUN apt-get install -y \
+libfreetype6-dev \
+libjpeg62-turbo-dev \
+libmcrypt-dev \
+libpng12-dev \
+libsqlite3-dev \
+libcurl4-gnutls-dev \
+&& apt-get install git -y \
+&& apt-get install -y libmcrypt-dev \
+&& docker-php-ext-install -j$(nproc) iconv mcrypt pdo_mysql zip opcache mbstring curl\
+&& docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+&& docker-php-ext-enable iconv mcrypt pdo_mysql zip curl opcache mbstring \
+&& apt-get autoremove -y
 
-#Install PHP7
-RUN apt-get -y install software-properties-common
-RUN add-apt-repository ppa:ondrej/php
-RUN apt-get update
-RUN apt-get -y  --allow-unauthenticated install php7.1 php7.1-cli php7.1-curl php7.1-intl php7.1-mysql php7.1-pgsql php7.1-json php7.1-opcache php7.1-mbstring php7.1-xml
+RUN curl -sS https://getcomposer.org/installer | php && mv composer.phar /usr/local/bin/composer
 
-#Install curl
-RUN apt-get -y install curl
-
-# Install Composer
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-RUN php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-RUN php -r "unlink('composer-setup.php');"
-
-RUN apt-get install -y apache2
+RUN apt-get update && apt-get install -y libmagickwand-6.q16-dev --no-install-recommends \
+&& ln -s /usr/lib/x86_64-linux-gnu/ImageMagick-6.8.9/bin-Q16/MagickWand-config /usr/bin \
+&& pecl install imagick \
+&& echo "extension=imagick.so" > /usr/local/etc/php/conf.d/ext-imagick.ini
 
 RUN apt-get install -y supervisor
-
-RUN apt-get -y install git
 
 COPY conf/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
